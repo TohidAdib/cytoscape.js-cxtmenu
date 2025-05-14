@@ -89,63 +89,122 @@
 					}
 				});
 
-				cy.cxtmenu({
-					selector: 'node, edge',
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 
-					commands: [
-						{
-							content: '<span class="fa fa-flash fa-2x"></span>',
-							select: function(ele){
-								console.log( ele.id() );
-							}
-						},
+// Set some attributes
+            svg.setAttribute("width", "50");
+            svg.setAttribute("height", "60");
+            svg.setAttribute("fill", "red");
 
-						{
-							content: '<span class="fa fa-star fa-2x"></span>',
-							select: function(ele){
-								console.log( ele.data('name') );
-							},
-							enabled: false
-						},
+// Create a child element, e.g., a <circle>
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", "10");
+            circle.setAttribute("cy", "10");
+            circle.setAttribute("r", "10");
+            circle.setAttribute("fill", "red");
 
-						{
-							content: 'Text',
-							select: function(ele){
-								console.log( ele.position() );
-							}
-						}
-					]
-				});
+// Append the circle to the SVG
+            svg.appendChild(circle);
 
-				cy.cxtmenu({
-					selector: 'core',
+            cy.cxtmenu({
+                selector: 'node, edge',
 
-					commands: [
-						{
-							content: 'bg1',
-							select: function(){
-								console.log( 'bg1' );
-							}
-						},
+                commands: [
+                    {
+                        content: '<span class="fa fa-flash fa-2x"></span>',
+                        select: function (ele) {
+                            console.log(ele.id());
+                        }
+                    },
+                    {
+                        content: '<span class="fa fa-flash fa-2x"></span>',
+                        select: function (ele) {
+                            console.log(ele.id());
+                        }
+                    },
+                    {
+                        content: '<span class="fa fa-flash fa-2x"></span>',
+                        select: function (ele) {
+                            console.log(ele.id());
+                        }
+                    },
+                    {
+                        content: '<span class="fa fa-star fa-2x"></span>',
+                        submenu: [
+                            {
+                                content: '<span class="fa fa-flash fa-2x"></span>',
+                                select: function (ele) {
+                                    console.log(ele.id());
+                                }
+                            },
+                            {
+                                content: 'Text',
+                                select: function (ele) {
+                                    console.log(ele.id());
+                                }
+                            },
+                            {
+                                content: 'What',
+                                enabled: false
+                            }
+                        ],
+                        enabled: true
+                    },
+                    {
+                        content: 'disabled',
+                        enabled: false
+                    },
+                    {
+                        content: svg,
+                        submenu: [
+                            {content: 'haha'},{content:'mohaha'}
+                        ]
+                    },
+                ]
+            });
 
-						{
-							content: 'bg2',
-							select: function(){
-								console.log( 'bg2' );
-							}
-						}
-					]
-				});
+            cy.cxtmenu({
+                selector: 'core',
 
-			});
-		</script>
-	</head>
+                commands: () => cy.$(':selected').length === 0 ? [
+                    {
+                        content: 'bg1',
+                        select: function () {
+                            console.log('bg1');
+                        }
+                    },
+                    { // example command
+                        fillColor: 'rgba(200, 200, 200, 0.75)', // optional: custom background color for item
+                        content: svg, // html/text content to be displayed in the menu
+                        select: function(ele){ // a function to execute when the command is selected
+                            console.log( 'triger' ) // `ele` holds the reference to the active element
+                        },
+                        enabled: true // whether the command is selectable
+                    },
 
-	<body>
-		<h1>cytoscape-cxtmenu demo</h1>
+                    {
+                        content: 'bg2',
+                        select: function () {
+                            console.log('bg2');
+                        }
+                    }
+                ] : [{
+                    content: 'bg1',
+                    select: function () {
+                        console.log('bg1');
+                    }
+                }]
+            });
 
-		<div id="cy"></div>
+        });
+    </script>
+</head>
 
-	</body>
+<body>
+<h1>cytoscape-cxtmenu demo</h1>
+
+<div id="cy"></div>
+
+</body>
 
 </html>

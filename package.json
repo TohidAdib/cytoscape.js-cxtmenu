@@ -1,7 +1,8 @@
 {
-  "name": "cytoscape-cxtmenu",
-  "version": "3.5.0",
-  "description": "A circular, swipeable context menu extension for Cytoscape.js",
+  "name": "@tohid_adib/cytoscape-cxtmenu",
+  "original_name": "cytoscape-cxtmenu",
+  "version": "3.6.1",
+  "description": "A circular context menu (with submenu) extension for Cytoscape.js",
   "main": "cytoscape-cxtmenu.js",
   "author": {
     "name": "Max Franz",
@@ -21,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/cytoscape/cytoscape.js-cxtmenu.git"
+    "url": "https://github.com/TohidAdib/cytoscape.js-cxtmenu.git"
   },
   "keywords": [
     "cytoscape",
@@ -29,7 +30,7 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/cytoscape/cytoscape.js-cxtmenu/issues"
+    "url": "https://github.com/TohidAdib/cytoscape.js-cxtmenu.git"
   },
   "homepage": "https://github.com/cytoscape/cytoscape.js-cxtmenu",
   "devDependencies": {
