@@ -27,7 +27,7 @@ let defaults = {
   openMenuEvents: 'cxttap', // space-separated cytoscape events that will open the menu; only `cxttapstart` and/or `taphold` work here
   itemColor: 'white', // the colour of text in the command's content
   itemTextShadowColor: 'transparent', // the text shadow colour of the command's content
-  zIndex: 9999, // the z-index of the ui div
+  zIndex: 9999, // the z-index of the ui div and canves
   atMouse: false // draw menu at mouse position
 };
 

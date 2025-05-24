@@ -14,6 +14,7 @@ const {
     clearLine,
     createRect,
     clearRect,
+    createBorder,
 } = require('./dom-util');
 
 let cxtmenu = function (params) {
@@ -34,6 +35,7 @@ let cxtmenu = function (params) {
     let wrapper = data.container;
     let parent = createElement();
     let canvas = createElement({ tag: 'canvas' });
+    canvas.style.zIndex = options.zIndex;
     let commands = [];
     let submenu_commands = [];
     let c2d = canvas.getContext('2d');
@@ -229,35 +231,16 @@ let cxtmenu = function (params) {
         let theta1 = startPoint;
         let theta2 = theta1 + dtheta;
 
+        const strokeStyle = options.separatorColor ? options.separatorColor : 'white';
         for (let command of commands) {
             createArc(c2d, {
                 x: 2 * r + options.activePadding,
                 y: 2 * r + options.activePadding,
-            }, r, 2 * Math.PI - theta1, 2 * Math.PI - theta2, command.fillColor ? command.fillColor : options.fillColor);
+            }, r, 2 * Math.PI - theta1, 2 * Math.PI - theta2, command.fillColor ? command.fillColor : options.fillColor,true, true, true, strokeStyle);
             theta1 += dtheta;
             theta2 += dtheta;
         }
         updateMenuItemPositions(baseGapPosition);
-
-        // draw separators between items
-        const strokeStyle = options.separatorColor ? options.separatorColor : 'white';
-        const lineWidth = options.separatorWidth ? options.separatorWidth : 1;
-        theta1 = startPoint;
-        theta2 = theta1 + dtheta;
-
-        for (let i = 0; i < commands.length; i++) {
-            let rx1 = r * Math.cos(theta1);
-            let ry1 = r * Math.sin(theta1);
-            createLine(c2d, {
-                x: 2 * r + options.activePadding,
-                y: 2 * r + options.activePadding,
-            }, {
-                x: 2 * r + options.activePadding + rx1,
-                y: 2 * r + options.activePadding - ry1,
-            }, lineWidth, strokeStyle);
-            theta1 += dtheta;
-            theta2 += dtheta;
-        }
 
         // draw inner circle
         createArc(c2d, {
@@ -296,10 +279,10 @@ let cxtmenu = function (params) {
         createArc(c2d, { x: cx, y: cy }, r + 10, startAngle, endAngle, options.activeFillColor);
 
         // === 4. Inner white circle for visual effect ===
-        createArc(c2d, { x: cx, y: cy }, r / 2 - 5, startAngle, endAngle, 'white');
+        createArc(c2d, { x: cx, y: cy }, r / 2 - 14, startAngle, endAngle, 'white');
 
         // === 5. Cut out the inner white circle again ===
-        clearArc(c2d, { x: cx, y: cy }, r / 2 - 5, startAngle, endAngle);
+        clearArc(c2d, { x: cx, y: cy }, r / 2 - 14, startAngle, endAngle);
 
         // === 6. Draw lines from center to arc endpoints ===
         const radius = r + 10;
@@ -352,11 +335,11 @@ let cxtmenu = function (params) {
         createArc(c2d, { x: centerX, y: centerY }, radius, startAngle, endAngle, options.activeFillColor);
 
         // === Draw White Inner Circle ===
-        createArc(c2d, { x: centerX, y: centerY }, r / 2 - 5, startAngle, endAngle, 'white');
+        createArc(c2d, { x: centerX, y: centerY }, r / 2 - 14, startAngle, endAngle, 'white');
         updateActiveMenuItemPosition(baseGapActivePosition);
 
         // === Erase Inner Circle for Transparency ===
-        clearArc(c2d, { x: centerX, y: centerY }, r / 2 - 5, startAngle, endAngle);
+        clearArc(c2d, { x: centerX, y: centerY }, r / 2 - 14, startAngle, endAngle);
 
         // === Draw Separator Lines at Arc Edges ===
         const x1 = centerX + radius * Math.cos(startAngle);
@@ -394,15 +377,26 @@ let cxtmenu = function (params) {
         const arcEnd = (2 * Math.PI - theta2) - outerSide;
 
         clearArcWithStroke(c2d, { x: centerX, y: centerY }, arcRadius, outerRadius - mainRadius, arcStart, arcEnd);
+        // === Draw filled arc (optional, only if you want a background fill)
         createArcWithStroke(c2d, {
             x: centerX,
             y: centerY,
         }, arcRadius, outerRadius - mainRadius, arcStart, arcEnd, options.fillColor);
 
+        // === Draw border around arc (with thin stroke)
+        createBorder(c2d,centerX,centerY,outerRadius + 14, arcStart, arcEnd,options.separatorColor ? options.separatorColor : 'white');
+
+        // Outer border
+        createBorder(c2d,centerX,centerY,radius + 5, arcStart, arcEnd,options.separatorColor ? options.separatorColor : 'white',1,false);
+
         // === Draw Submenu Separators ===
         let subTheta = startPoint + dtheta * activeCommandI;
         const separatorInnerRadius = arcRadius - (outerRadius - mainRadius) / 2;
         const separatorOuterRadius = arcRadius + (outerRadius - mainRadius) / 2;
+
+        // Adjust the angles to match the arc borders
+        const adjustedStartAngle = arcStart;
+        const adjustedEndAngle = arcEnd;
 
         for (let i = 1; i < submenu_commands.length; i++) {
             subTheta += ddtheta;
@@ -418,6 +412,38 @@ let cxtmenu = function (params) {
             const strokeStyle = options.separatorColor || 'white';
             createLine(c2d, { x: sepX1, y: sepY1 }, { x: sepX2, y: sepY2 }, lineWidth, strokeStyle, false);
         }
+
+        // === Draw Start Separator Line ===
+        createLine(
+            c2d,
+            {
+                x: centerX + separatorInnerRadius * Math.cos(adjustedStartAngle),
+                y: centerY + separatorInnerRadius * Math.sin(adjustedStartAngle)
+            },
+            {
+                x: centerX + separatorOuterRadius * Math.cos(adjustedStartAngle),
+                y: centerY + separatorOuterRadius * Math.sin(adjustedStartAngle)
+            },
+            options.separatorWidth || 1,
+            options.separatorColor || 'white',
+            false
+        );
+
+        // === Draw End Separator Line ===
+        createLine(
+            c2d,
+            {
+                x: centerX + separatorInnerRadius * Math.cos(adjustedEndAngle),
+                y: centerY + separatorInnerRadius * Math.sin(adjustedEndAngle)
+            },
+            {
+                x: centerX + separatorOuterRadius * Math.cos(adjustedEndAngle),
+                y: centerY + separatorOuterRadius * Math.sin(adjustedEndAngle)
+            },
+            options.separatorWidth || 1,
+            options.separatorColor || 'white',
+            false
+        );
     }
 
     //绘制活动子菜单
@@ -451,7 +477,7 @@ let cxtmenu = function (params) {
         }
 
         // Set stroke color based on submenu command or fallback option
-        let strokeStyle = submenu_commands[activeSubCommandI]?.fillColor || options.activeFillColor;
+        let strokeStyle = options.activeFillColor;
 
         // Erase underlying content with stroke (cutout effect)
         clearArcWithStroke(c2d, {
@@ -900,6 +926,6 @@ let cxtmenu = function (params) {
         destroy: () => destroyInstance(),
     };
 
-}
+};
 
-module.exports = cxtmenu
+module.exports = cxtmenu;
