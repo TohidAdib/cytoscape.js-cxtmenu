@@ -606,6 +606,10 @@
                             activeItem.style.marginLeft = rx1 - r * 0.33 + 'px';
                             activeItem.style.marginTop = -ry1 - r * 0.33 + 'px';
                         }
+
+                        commands.forEach(function (command, index) {
+                            return command.hovered = activeCommandI === index;
+                        });
                     }
 
                     function updateMenuItemPositions() {
@@ -863,12 +867,6 @@
 
                             var d = Math.sqrt(dx * dx + dy * dy);
 
-                            if (d > options.menuRadius + 160) {
-                                queueDrawBg();
-                                cancelActiveCommand();
-                                return;
-                            }
-
                             var cosTheta = (dy * dy - d * d - dx * dx) / (-2 * d * dx);
                             var theta = Math.acos(cosTheta);
 
@@ -925,7 +923,11 @@
                                     return;
                                 }
 
-                                if (d < options.menuRadius * 2 && d > options.menuRadius && commands[activeCommandI].submenu) {
+                                if (d >= options.menuRadius + 160) {
+                                    commands[activeCommandI].hovered = false;
+                                }
+
+                                if (d < options.menuRadius + 160 && d > options.menuRadius && commands[activeCommandI].submenu && commands[activeCommandI].hovered) {
                                     showSubmenuContent(activeCommandI);
                                     submenu_commands = commands[activeCommandI].submenu;
                                     queueDrawBg();

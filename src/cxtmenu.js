@@ -510,6 +510,8 @@ let cxtmenu = function (params) {
             activeItem.style.marginLeft = (rx1 - r * 0.33) + 'px';
             activeItem.style.marginTop = (-ry1 - r * 0.33) + 'px';
         }
+
+        commands.forEach((command, index) => command.hovered = (activeCommandI === index));
     }
 
     function updateMenuItemPositions(offsetRadius = 0, angularOffset = 0) {
@@ -769,12 +771,6 @@ let cxtmenu = function (params) {
 
                 let d = Math.sqrt(dx * dx + dy * dy);
 
-                if (d > options.menuRadius + 160) {
-                    queueDrawBg();
-                    cancelActiveCommand();
-                    return;
-                }
-
                 let cosTheta = (dy * dy - d * d - dx * dx) / (-2 * d * dx);
                 let theta = Math.acos(cosTheta);
 
@@ -832,7 +828,11 @@ let cxtmenu = function (params) {
                         return;
                     }
 
-                    if ((d < options.menuRadius * 2 && d > options.menuRadius) && commands[activeCommandI].submenu) {
+                    if (d >= options.menuRadius + 160) {
+                        commands[activeCommandI].hovered = false;
+                    }
+
+                    if ((d < options.menuRadius + 160 && d > options.menuRadius) && commands[activeCommandI].submenu && commands[activeCommandI].hovered) {
                         showSubmenuContent(activeCommandI);
                         submenu_commands = commands[activeCommandI].submenu;
                         queueDrawBg();
