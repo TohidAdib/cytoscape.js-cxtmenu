@@ -768,6 +768,13 @@ let cxtmenu = function (params) {
                 }
 
                 let d = Math.sqrt(dx * dx + dy * dy);
+
+                if (d > options.menuRadius + 160) {
+                    queueDrawBg();
+                    cancelActiveCommand();
+                    return;
+                }
+
                 let cosTheta = (dy * dy - d * d - dx * dx) / (-2 * d * dx);
                 let theta = Math.acos(cosTheta);
 
