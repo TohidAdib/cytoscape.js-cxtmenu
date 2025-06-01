@@ -846,7 +846,7 @@
                                 inGesture = true;
                                 gestureStartEvent = e;
                             }
-                        }).on('cxtdrag tapdrag', options.selector = function (e) {
+                        }).on('tapdrag', options.selector = function (e) {
                             if (!inGesture) {
                                 return;
                             }
@@ -960,7 +960,7 @@
 
                             cancelActiveCommand();
                             queueDrawBg();
-                        }).on('cxttapend tapend', function () {
+                        }).on('tapend', function () {
                             parent.style.display = 'none';
                             if (activeCommandI !== undefined) {
                                 var select = commands[activeCommandI].select;

@@ -750,7 +750,7 @@ let cxtmenu = function (params) {
                 }
             })
 
-            .on('cxtdrag tapdrag', options.selector = e => {
+            .on('tapdrag', options.selector = e => {
                 if (!inGesture) {
                     return;
                 }
@@ -868,7 +868,7 @@ let cxtmenu = function (params) {
                 queueDrawBg();
             })
 
-            .on('cxttapend tapend', function () {
+            .on('tapend', function () {
                 parent.style.display = 'none';
                 if (activeCommandI !== undefined) {
                     let select = commands[activeCommandI].select;
