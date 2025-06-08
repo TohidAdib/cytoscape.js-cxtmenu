@@ -28,7 +28,9 @@ let defaults = {
   itemColor: 'white', // the colour of text in the command's content
   itemTextShadowColor: 'transparent', // the text shadow colour of the command's content
   zIndex: 9999, // the z-index of the ui div and canves
-  atMouse: false // draw menu at mouse position
+  atMouse: false, // draw menu at mouse position
+  autoOpen: true,
+  onClose: () => {},
 };
 
 module.exports = defaults;

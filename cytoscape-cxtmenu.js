@@ -724,259 +724,270 @@
                         }
                     };
 
-                    function addEventListeners() {
-                        var grabbable = void 0;
-                        var inGesture = false;
-                        var zoomEnabled = void 0;
-                        var panEnabled = void 0;
-                        var boxEnabled = void 0;
-                        var gestureStartEvent = void 0;
+                    var grabbable = void 0;
+                    var inGesture = false;
+                    var zoomEnabled = void 0;
+                    var panEnabled = void 0;
+                    var boxEnabled = void 0;
+                    var gestureStartEvent = void 0;
 
-                        var restoreZoom = function restoreZoom() {
-                            if (zoomEnabled) {
-                                cy.userZoomingEnabled(true);
-                            }
-                        };
+                    var restoreZoom = function restoreZoom() {
+                        if (zoomEnabled) {
+                            cy.userZoomingEnabled(true);
+                        }
+                    };
 
-                        var restoreGrab = function restoreGrab() {
-                            if (grabbable) {
-                                target.grabify();
-                            }
-                        };
+                    var restoreGrab = function restoreGrab() {
+                        if (grabbable) {
+                            target.grabify();
+                        }
+                    };
 
-                        var restorePan = function restorePan() {
-                            if (panEnabled) {
-                                cy.userPanningEnabled(true);
-                            }
-                        };
+                    var restorePan = function restorePan() {
+                        if (panEnabled) {
+                            cy.userPanningEnabled(true);
+                        }
+                    };
 
-                        var restoreBoxSeln = function restoreBoxSeln() {
-                            if (boxEnabled) {
-                                cy.boxSelectionEnabled(true);
-                            }
-                        };
+                    var restoreBoxSeln = function restoreBoxSeln() {
+                        if (boxEnabled) {
+                            cy.boxSelectionEnabled(true);
+                        }
+                    };
 
-                        var restoreGestures = function restoreGestures() {
-                            restoreGrab();
-                            restoreZoom();
-                            restorePan();
-                            restoreBoxSeln();
-                        };
+                    var restoreGestures = function restoreGestures() {
+                        restoreGrab();
+                        restoreZoom();
+                        restorePan();
+                        restoreBoxSeln();
+                    };
 
-                        window.addEventListener('resize', updatePixelRatio);
+                    window.addEventListener('resize', updatePixelRatio);
 
-                        bindings.on('resize', function () {
-                            updatePixelRatio();
-                        }).on(options.openMenuEvents, options.selector, function (e) {
-                            target = this; // Remember which node the context menu is for
-                            var ele = this;
-                            var isCy = this === cy;
+                    function openCxtmenu(e) {
+                        target = e.target; // Remember which node the context menu is for
+                        var ele = e.target;
+                        var isCy = e.target === cy;
 
-                            if (inGesture) {
-                                parent.style.display = 'none';
+                        if (inGesture) {
+                            parent.style.display = 'none';
 
-                                inGesture = false;
+                            inGesture = false;
+                            options.onClose();
 
-                                restoreGestures();
-                            }
+                            restoreGestures();
+                        }
 
-                            if (typeof options.commands === 'function') {
-                                var res = options.commands(target);
-                                if (res.then) {
-                                    res.then(function (_commands) {
-                                        commands = _commands;
-                                        openMenu();
-                                    });
-                                } else {
-                                    commands = res;
+                        if (typeof options.commands === 'function') {
+                            var res = options.commands(target);
+                            if (res.then) {
+                                res.then(function (_commands) {
+                                    commands = _commands;
                                     openMenu();
-                                }
+                                });
                             } else {
-                                commands = options.commands;
+                                commands = res;
                                 openMenu();
                             }
+                        } else {
+                            commands = options.commands;
+                            openMenu();
+                        }
 
-                            function openMenu() {
-                                if (!commands || commands.length === 0) {
-                                    return;
-                                }
-
-                                zoomEnabled = cy.userZoomingEnabled();
-                                cy.userZoomingEnabled(false);
-
-                                panEnabled = cy.userPanningEnabled();
-                                cy.userPanningEnabled(false);
-
-                                boxEnabled = cy.boxSelectionEnabled();
-                                cy.boxSelectionEnabled(false);
-
-                                grabbable = target.grabbable && target.grabbable();
-                                if (grabbable) {
-                                    target.ungrabify();
-                                }
-
-                                var rp = void 0,
-                                    rw = void 0,
-                                    rh = void 0;
-                                if (!isCy && ele.isNode() && !ele.isParent() && !options.atMouse) {
-                                    rp = ele.renderedPosition();
-                                    rw = ele.renderedWidth();
-                                    rh = ele.renderedHeight();
-                                } else {
-                                    rp = e.renderedPosition || e.cyRenderedPosition;
-                                    rw = 1;
-                                    rh = 1;
-                                }
-
-                                offset = getOffset(container);
-                                ctrx = rp.x;
-                                ctry = rp.y;
-                                createMenuItems();
-                                createSubMenuItems();
-                                setStyles(parent, {
-                                    display: 'block',
-                                    left: rp.x - r + 'px',
-                                    top: rp.y - r + 'px'
-                                });
-                                rs = Math.max(rw, rh) / 2;
-                                rs = Math.max(rs, options.minSpotlightRadius);
-                                rs = Math.min(rs, options.maxSpotlightRadius);
-                                queueDrawBg();
-                                activeCommandI = undefined;
-                                inGesture = true;
-                                gestureStartEvent = e;
-                            }
-                        }).on('tapdrag', options.selector = function (e) {
-                            if (!inGesture) {
+                        function openMenu() {
+                            if (!commands || commands.length === 0) {
                                 return;
                             }
 
-                            var origE = e.originalEvent;
-                            var isTouch = origE.touches && origE.touches.length > 0;
-                            var pageX = isTouch ? origE.touches[0].pageX : origE.pageX;
-                            var pageY = isTouch ? origE.touches[0].pageY : origE.pageY;
+                            zoomEnabled = cy.userZoomingEnabled();
+                            cy.userZoomingEnabled(false);
 
-                            activeCommandI = undefined;
+                            panEnabled = cy.userPanningEnabled();
+                            cy.userPanningEnabled(false);
 
-                            var dx = pageX - offset.left - ctrx;
-                            var dy = pageY - offset.top - ctry;
+                            boxEnabled = cy.boxSelectionEnabled();
+                            cy.boxSelectionEnabled(false);
 
-                            if (dx === 0) {
-                                dx = 0.01;
+                            grabbable = target.grabbable && target.grabbable();
+                            if (grabbable) {
+                                target.ungrabify();
                             }
 
-                            var d = Math.sqrt(dx * dx + dy * dy);
-
-                            var cosTheta = (dy * dy - d * d - dx * dx) / (-2 * d * dx);
-                            var theta = Math.acos(cosTheta);
-
-                            var rx = dx * r / d;
-                            var ry = dy * r / d;
-
-                            if (dy > 0) {
-                                theta = Math.PI + Math.abs(theta - Math.PI);
+                            var rp = void 0,
+                                rw = void 0,
+                                rh = void 0;
+                            if (!isCy && ele.isNode() && !ele.isParent() && !options.atMouse) {
+                                rp = ele.renderedPosition();
+                                rw = ele.renderedWidth();
+                                rh = ele.renderedHeight();
+                            } else {
+                                rp = e.renderedPosition || e.cyRenderedPosition;
+                                rw = 1;
+                                rh = 1;
                             }
 
-                            var dtheta = 2 * Math.PI / commands.length;
-                            var theta1 = startPoint;
-                            var theta2 = theta1 + dtheta;
-                            for (var i = 0; i < commands.length; i++) {
-                                var command = commands[i];
-                                if (command.submenu) {
-                                    submenu_commands = command.submenu;
-                                } else {
-                                    submenu_commands = [];
-                                }
-
-                                var inThisCommand = theta1 <= theta && theta <= theta2 || theta1 <= theta + 2 * Math.PI && theta + 2 * Math.PI <= theta2;
-
-                                if (command.enabled === false) {
-                                    inThisCommand = false;
-                                }
-
-                                if (inThisCommand) {
-                                    activeCommandI = i;
-                                    break;
-                                }
-                                theta1 += dtheta;
-                                theta2 += dtheta;
-                            }
-                            hideSubmenuContent();
-
-                            if (commands[activeCommandI] !== undefined) {
-
-                                // Do not draw indicator while mouse in inner circle or out of circle # But if a command has submenu, draw indicator util mouse out of submenu (2*r)
-                                if (d < rs + options.spotlightPadding || d > options.menuRadius && !commands[activeCommandI].submenu) {
-                                    queueDrawBg();
-                                    cancelActiveCommand();
-                                    return;
-                                }
-
-                                if (d > rs + options.spotlightPadding && d < options.menuRadius) {
-                                    queueDrawBg();
-                                    if (!commands[activeCommandI].submenu) {
-                                        queueDrawCommands(rx, ry, theta);
-                                    } else {
-                                        showSubmenuContent(activeCommandI);
-                                        queueDrawSubmenuBg(rx, ry, theta);
-                                    }
-                                    return;
-                                }
-
-                                if (d >= options.menuRadius + 160) {
-                                    commands[activeCommandI].hovered = false;
-                                }
-
-                                if (d < options.menuRadius + 160 && d > options.menuRadius && commands[activeCommandI].submenu && commands[activeCommandI].hovered) {
-                                    showSubmenuContent(activeCommandI);
-                                    submenu_commands = commands[activeCommandI].submenu;
-                                    queueDrawBg();
-                                    // Judge which submenu used
-                                    var ddtheta = dtheta / submenu_commands.length;
-                                    var _theta = startPoint;
-                                    var _theta2 = _theta + ddtheta;
-                                    _theta += dtheta * activeCommandI;
-                                    _theta2 += dtheta * activeCommandI;
-                                    for (var _i = 0; _i < submenu_commands.length; _i++) {
-                                        var submenu_command = commands[activeCommandI].submenu[_i];
-                                        var inThisSubMenuCommand = _theta <= theta && theta <= _theta2 || _theta <= theta + 2 * Math.PI && theta + 2 * Math.PI <= _theta2;
-                                        if (submenu_command.enabled === false) {
-                                            inThisSubMenuCommand = false;
-                                            activeSubCommandI = undefined;
-                                        }
-                                        if (inThisSubMenuCommand) {
-                                            activeSubCommandI = _i;
-                                            break;
-                                        }
-                                        _theta += ddtheta;
-                                        _theta2 += ddtheta;
-                                    }
-
-                                    queueDrawSubmenuBg(rx, ry, theta);
-                                    queueDrawSubmenuCommands();
-                                    return;
-                                }
-                            }
-
-                            cancelActiveCommand();
+                            offset = getOffset(container);
+                            ctrx = rp.x;
+                            ctry = rp.y;
+                            createMenuItems();
+                            createSubMenuItems();
+                            setStyles(parent, {
+                                display: 'block',
+                                left: rp.x - r + 'px',
+                                top: rp.y - r + 'px'
+                            });
+                            rs = Math.max(rw, rh) / 2;
+                            rs = Math.max(rs, options.minSpotlightRadius);
+                            rs = Math.min(rs, options.maxSpotlightRadius);
                             queueDrawBg();
-                        }).on('tapend', function () {
-                            parent.style.display = 'none';
-                            if (activeCommandI !== undefined) {
-                                var select = commands[activeCommandI].select;
-                                if (select) {
-                                    select.apply(target, [target, gestureStartEvent]);
-                                    activeCommandI = undefined;
-                                } else if (commands[activeCommandI].submenu && activeSubCommandI !== undefined) {
-                                    // Execute submenu select function
-                                    commands[activeCommandI].submenu[activeSubCommandI].select.apply(target, [target, gestureStartEvent]);
-                                    activeCommandI = undefined;
-                                    activeSubCommandI = undefined;
-                                }
+                            activeCommandI = undefined;
+                            inGesture = true;
+                            gestureStartEvent = e;
+                        }
+                    }
+
+                    bindings.on('resize', function () {
+                        updatePixelRatio();
+                    }).on('tapdrag', function (e) {
+                        if (!inGesture) {
+                            return;
+                        }
+
+                        var origE = e.originalEvent;
+                        var isTouch = origE.touches && origE.touches.length > 0;
+                        var pageX = isTouch ? origE.touches[0].pageX : origE.pageX;
+                        var pageY = isTouch ? origE.touches[0].pageY : origE.pageY;
+
+                        activeCommandI = undefined;
+
+                        var dx = pageX - offset.left - ctrx;
+                        var dy = pageY - offset.top - ctry;
+
+                        if (dx === 0) {
+                            dx = 0.01;
+                        }
+
+                        var d = Math.sqrt(dx * dx + dy * dy);
+
+                        var cosTheta = (dy * dy - d * d - dx * dx) / (-2 * d * dx);
+                        var theta = Math.acos(cosTheta);
+
+                        var rx = dx * r / d;
+                        var ry = dy * r / d;
+
+                        if (dy > 0) {
+                            theta = Math.PI + Math.abs(theta - Math.PI);
+                        }
+
+                        var dtheta = 2 * Math.PI / commands.length;
+                        var theta1 = startPoint;
+                        var theta2 = theta1 + dtheta;
+                        for (var i = 0; i < commands.length; i++) {
+                            var command = commands[i];
+                            if (command.submenu) {
+                                submenu_commands = command.submenu;
+                            } else {
+                                submenu_commands = [];
                             }
-                            inGesture = false;
-                            restoreGestures();
-                        });
+
+                            var inThisCommand = theta1 <= theta && theta <= theta2 || theta1 <= theta + 2 * Math.PI && theta + 2 * Math.PI <= theta2;
+
+                            if (command.enabled === false) {
+                                inThisCommand = false;
+                            }
+
+                            if (inThisCommand) {
+                                activeCommandI = i;
+                                break;
+                            }
+                            theta1 += dtheta;
+                            theta2 += dtheta;
+                        }
+                        hideSubmenuContent();
+
+                        if (commands[activeCommandI] !== undefined) {
+
+                            // Do not draw indicator while mouse in inner circle or out of circle # But if a command has submenu, draw indicator util mouse out of submenu (2*r)
+                            if (d < rs + options.spotlightPadding || d > options.menuRadius && !commands[activeCommandI].submenu) {
+                                queueDrawBg();
+                                cancelActiveCommand();
+                                return;
+                            }
+
+                            if (d > rs + options.spotlightPadding && d < options.menuRadius) {
+                                queueDrawBg();
+                                if (!commands[activeCommandI].submenu) {
+                                    queueDrawCommands(rx, ry, theta);
+                                } else {
+                                    showSubmenuContent(activeCommandI);
+                                    queueDrawSubmenuBg(rx, ry, theta);
+                                }
+                                return;
+                            }
+
+                            if (d >= options.menuRadius + 160) {
+                                commands[activeCommandI].hovered = false;
+                            }
+
+                            if (d < options.menuRadius + 160 && d > options.menuRadius && commands[activeCommandI].submenu && commands[activeCommandI].hovered) {
+                                showSubmenuContent(activeCommandI);
+                                submenu_commands = commands[activeCommandI].submenu;
+                                queueDrawBg();
+                                // Judge which submenu used
+                                var ddtheta = dtheta / submenu_commands.length;
+                                var _theta = startPoint;
+                                var _theta2 = _theta + ddtheta;
+                                _theta += dtheta * activeCommandI;
+                                _theta2 += dtheta * activeCommandI;
+                                for (var _i = 0; _i < submenu_commands.length; _i++) {
+                                    var submenu_command = commands[activeCommandI].submenu[_i];
+                                    var inThisSubMenuCommand = _theta <= theta && theta <= _theta2 || _theta <= theta + 2 * Math.PI && theta + 2 * Math.PI <= _theta2;
+                                    if (submenu_command.enabled === false) {
+                                        inThisSubMenuCommand = false;
+                                        activeSubCommandI = undefined;
+                                    }
+                                    if (inThisSubMenuCommand) {
+                                        activeSubCommandI = _i;
+                                        break;
+                                    }
+                                    _theta += ddtheta;
+                                    _theta2 += ddtheta;
+                                }
+
+                                queueDrawSubmenuBg(rx, ry, theta);
+                                queueDrawSubmenuCommands();
+                                return;
+                            }
+                        }
+
+                        cancelActiveCommand();
+                        queueDrawBg();
+                    }).on('tapend', function () {
+                        parent.style.display = 'none';
+                        if (activeCommandI !== undefined) {
+                            var select = commands[activeCommandI].select;
+                            if (select) {
+                                select.apply(target, [target, gestureStartEvent]);
+                                activeCommandI = undefined;
+                            } else if (commands[activeCommandI].submenu && activeSubCommandI !== undefined) {
+                                // Execute submenu select function
+                                var hoveredSubmenu = commands[activeCommandI].submenu[activeSubCommandI].select;
+                                if (hoveredSubmenu) {
+                                    hoveredSubmenu.apply(target, [target, gestureStartEvent]);
+                                }
+                                activeCommandI = undefined;
+                                activeSubCommandI = undefined;
+                            }
+                        }
+                        if (inGesture) {
+                            options.onClose();
+                        }
+                        inGesture = false;
+                        restoreGestures();
+                    });
+
+                    if (options.autoOpen) {
+                        bindings.on(options.openMenuEvents, options.selector, openCxtmenu);
                     }
 
                     function cancelActiveCommand() {
@@ -1083,12 +1094,14 @@
                         wrapper.remove();
                     }
 
-                    addEventListeners();
-
                     return {
                         destroy: function destroy() {
                             return destroyInstance();
-                        }
+                        },
+                        isOpen: function isOpen() {
+                            return inGesture;
+                        },
+                        open: openCxtmenu
                     };
                 };
 
@@ -1156,7 +1169,9 @@
                     itemColor: 'white', // the colour of text in the command's content
                     itemTextShadowColor: 'transparent', // the text shadow colour of the command's content
                     zIndex: 9999, // the z-index of the ui div and canves
-                    atMouse: false // draw menu at mouse position
+                    atMouse: false, // draw menu at mouse position
+                    autoOpen: true,
+                    onClose: function onClose() {}
                 };
 
                 module.exports = defaults;

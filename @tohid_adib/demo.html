@@ -53,6 +53,12 @@
 
 					style: [
 						{
+							selector: '*:active',
+							style: {
+								'overlay-opacity': 0,
+							},
+						},
+						{
 							selector: 'node',
 							css: {
 								'content': 'data(name)'
@@ -109,9 +115,17 @@
 // Append the circle to the SVG
             svg.appendChild(circle);
 
-            cy.cxtmenu({
+            const cxt = cy.cxtmenu({
                 selector: 'node, edge',
-
+				autoOpen: false,
+				onClose: () => {
+					setTimeout(() => {
+						cy.userPanningEnabled(true);
+						cy.boxSelectionEnabled(true);
+						cy.autoungrabify(false);
+						cy.autounselectify(false);
+					});
+				},
                 commands: [
                     {
                         content: '<span class="fa fa-flash fa-2x"></span>',
@@ -166,9 +180,19 @@
                 ]
             });
 
+			cy.on('cxttapstart', 'node', e => {
+				if (!cxt.isOpen()) {
+					cxt.open(e);
+					cy.userPanningEnabled(false);
+					cy.boxSelectionEnabled(false);
+					cy.autoungrabify(true);
+					cy.autounselectify(true);
+				}
+			});
+
             cy.cxtmenu({
                 selector: 'core',
-
+				autoOpen: false,
                 commands: () => cy.$(':selected').length === 0 ? [
                     {
                         content: 'bg1',

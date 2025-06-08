@@ -625,266 +625,275 @@ let cxtmenu = function (params) {
         },
     };
 
-    function addEventListeners() {
-        let grabbable;
-        let inGesture = false;
-        let zoomEnabled;
-        let panEnabled;
-        let boxEnabled;
-        let gestureStartEvent;
+    let grabbable;
+    let inGesture = false;
+    let zoomEnabled;
+    let panEnabled;
+    let boxEnabled;
+    let gestureStartEvent;
 
-        let restoreZoom = () => {
-            if (zoomEnabled) {
-                cy.userZoomingEnabled(true);
-            }
-        };
+    let restoreZoom = () => {
+        if (zoomEnabled) {
+            cy.userZoomingEnabled(true);
+        }
+    };
 
-        let restoreGrab = () => {
-            if (grabbable) {
-                target.grabify();
-            }
-        };
+    let restoreGrab = () => {
+        if (grabbable) {
+            target.grabify();
+        }
+    };
 
-        let restorePan = () => {
-            if (panEnabled) {
-                cy.userPanningEnabled(true);
-            }
-        };
+    let restorePan = () => {
+        if (panEnabled) {
+            cy.userPanningEnabled(true);
+        }
+    };
 
-        let restoreBoxSeln = () => {
-            if (boxEnabled) {
-                cy.boxSelectionEnabled(true);
-            }
-        };
+    let restoreBoxSeln = () => {
+        if (boxEnabled) {
+            cy.boxSelectionEnabled(true);
+        }
+    };
 
-        let restoreGestures = () => {
-            restoreGrab();
-            restoreZoom();
-            restorePan();
-            restoreBoxSeln();
-        };
+    let restoreGestures = () => {
+        restoreGrab();
+        restoreZoom();
+        restorePan();
+        restoreBoxSeln();
+    };
 
-        window.addEventListener('resize', updatePixelRatio);
+    window.addEventListener('resize', updatePixelRatio);
 
-        bindings
-            .on('resize', () => {
-                updatePixelRatio();
-            })
+    function openCxtmenu(e) {
+        target = e.target; // Remember which node the context menu is for
+        let ele = e.target;
+        let isCy = e.target === cy;
 
-            .on(options.openMenuEvents, options.selector, function (e) {
-                target = this; // Remember which node the context menu is for
-                let ele = this;
-                let isCy = this === cy;
+        if (inGesture) {
+            parent.style.display = 'none';
 
-                if (inGesture) {
-                    parent.style.display = 'none';
+            inGesture = false;
+            options.onClose();
 
-                    inGesture = false;
+            restoreGestures();
+        }
 
-                    restoreGestures();
-                }
-
-                if (typeof options.commands === 'function') {
-                    const res = options.commands(target);
-                    if (res.then) {
-                        res.then(_commands => {
-                            commands = _commands;
-                            openMenu();
-                        });
-                    } else {
-                        commands = res;
-                        openMenu();
-                    }
-                } else {
-                    commands = options.commands;
+        if (typeof options.commands === 'function') {
+            const res = options.commands(target);
+            if (res.then) {
+                res.then(_commands => {
+                    commands = _commands;
                     openMenu();
+                });
+            } else {
+                commands = res;
+                openMenu();
+            }
+        } else {
+            commands = options.commands;
+            openMenu();
+        }
+
+        function openMenu() {
+            if (!commands || commands.length === 0) {
+                return;
+            }
+
+            zoomEnabled = cy.userZoomingEnabled();
+            cy.userZoomingEnabled(false);
+
+            panEnabled = cy.userPanningEnabled();
+            cy.userPanningEnabled(false);
+
+            boxEnabled = cy.boxSelectionEnabled();
+            cy.boxSelectionEnabled(false);
+
+            grabbable = target.grabbable && target.grabbable();
+            if (grabbable) {
+                target.ungrabify();
+            }
+
+            let rp, rw, rh;
+            if (!isCy && ele.isNode() && !ele.isParent() && !options.atMouse) {
+                rp = ele.renderedPosition();
+                rw = ele.renderedWidth();
+                rh = ele.renderedHeight();
+            } else {
+                rp = e.renderedPosition || e.cyRenderedPosition;
+                rw = 1;
+                rh = 1;
+            }
+
+            offset = getOffset(container);
+            ctrx = rp.x;
+            ctry = rp.y;
+            createMenuItems();
+            createSubMenuItems();
+            setStyles(parent, {
+                display: 'block',
+                left: (rp.x - r) + 'px',
+                top: (rp.y - r) + 'px',
+            });
+            rs = Math.max(rw, rh) / 2;
+            rs = Math.max(rs, options.minSpotlightRadius);
+            rs = Math.min(rs, options.maxSpotlightRadius);
+            queueDrawBg();
+            activeCommandI = undefined;
+            inGesture = true;
+            gestureStartEvent = e;
+        }
+    }
+
+    bindings
+        .on('resize', () => {
+            updatePixelRatio();
+        })
+
+        .on('tapdrag', e => {
+            if (!inGesture) {
+                return;
+            }
+
+            let origE = e.originalEvent;
+            let isTouch = origE.touches && origE.touches.length > 0;
+            let pageX = isTouch ? origE.touches[0].pageX : origE.pageX;
+            let pageY = isTouch ? origE.touches[0].pageY : origE.pageY;
+
+            activeCommandI = undefined;
+
+            let dx = pageX - offset.left - ctrx;
+            let dy = pageY - offset.top - ctry;
+
+            if (dx === 0) {
+                dx = 0.01;
+            }
+
+            let d = Math.sqrt(dx * dx + dy * dy);
+
+            let cosTheta = (dy * dy - d * d - dx * dx) / (-2 * d * dx);
+            let theta = Math.acos(cosTheta);
+
+            let rx = dx * r / d;
+            let ry = dy * r / d;
+
+            if (dy > 0) {
+                theta = Math.PI + Math.abs(theta - Math.PI);
+            }
+
+            let dtheta = 2 * Math.PI / (commands.length);
+            let theta1 = startPoint;
+            let theta2 = theta1 + dtheta;
+            for (let i = 0; i < commands.length; i++) {
+                let command = commands[i];
+                if (command.submenu) {
+                    submenu_commands = command.submenu;
+                } else {
+                    submenu_commands = [];
                 }
 
-                function openMenu() {
-                    if (!commands || commands.length === 0) {
-                        return;
-                    }
+                let inThisCommand = theta1 <= theta && theta <= theta2
+                    || theta1 <= theta + 2 * Math.PI && theta + 2 * Math.PI <= theta2;
 
-                    zoomEnabled = cy.userZoomingEnabled();
-                    cy.userZoomingEnabled(false);
+                if (command.enabled === false) {
+                    inThisCommand = false;
+                }
 
-                    panEnabled = cy.userPanningEnabled();
-                    cy.userPanningEnabled(false);
+                if (inThisCommand) {
+                    activeCommandI = i;
+                    break;
+                }
+                theta1 += dtheta;
+                theta2 += dtheta;
+            }
+            hideSubmenuContent();
 
-                    boxEnabled = cy.boxSelectionEnabled();
-                    cy.boxSelectionEnabled(false);
+            if (commands[activeCommandI] !== undefined) {
 
-                    grabbable = target.grabbable && target.grabbable();
-                    if (grabbable) {
-                        target.ungrabify();
-                    }
-
-                    let rp, rw, rh;
-                    if (!isCy && ele.isNode() && !ele.isParent() && !options.atMouse) {
-                        rp = ele.renderedPosition();
-                        rw = ele.renderedWidth();
-                        rh = ele.renderedHeight();
-                    } else {
-                        rp = e.renderedPosition || e.cyRenderedPosition;
-                        rw = 1;
-                        rh = 1;
-                    }
-
-                    offset = getOffset(container);
-                    ctrx = rp.x;
-                    ctry = rp.y;
-                    createMenuItems();
-                    createSubMenuItems();
-                    setStyles(parent, {
-                        display: 'block',
-                        left: (rp.x - r) + 'px',
-                        top: (rp.y - r) + 'px',
-                    });
-                    rs = Math.max(rw, rh) / 2;
-                    rs = Math.max(rs, options.minSpotlightRadius);
-                    rs = Math.min(rs, options.maxSpotlightRadius);
+                // Do not draw indicator while mouse in inner circle or out of circle # But if a command has submenu, draw indicator util mouse out of submenu (2*r)
+                if (d < rs + options.spotlightPadding || ((d > options.menuRadius) && !commands[activeCommandI].submenu)) {
                     queueDrawBg();
-                    activeCommandI = undefined;
-                    inGesture = true;
-                    gestureStartEvent = e;
-                }
-            })
-
-            .on('tapdrag', options.selector = e => {
-                if (!inGesture) {
+                    cancelActiveCommand();
                     return;
                 }
 
-                let origE = e.originalEvent;
-                let isTouch = origE.touches && origE.touches.length > 0;
-                let pageX = isTouch ? origE.touches[0].pageX : origE.pageX;
-                let pageY = isTouch ? origE.touches[0].pageY : origE.pageY;
-
-                activeCommandI = undefined;
-
-                let dx = pageX - offset.left - ctrx;
-                let dy = pageY - offset.top - ctry;
-
-                if (dx === 0) {
-                    dx = 0.01;
-                }
-
-                let d = Math.sqrt(dx * dx + dy * dy);
-
-                let cosTheta = (dy * dy - d * d - dx * dx) / (-2 * d * dx);
-                let theta = Math.acos(cosTheta);
-
-                let rx = dx * r / d;
-                let ry = dy * r / d;
-
-                if (dy > 0) {
-                    theta = Math.PI + Math.abs(theta - Math.PI);
-                }
-
-                let dtheta = 2 * Math.PI / (commands.length);
-                let theta1 = startPoint;
-                let theta2 = theta1 + dtheta;
-                for (let i = 0; i < commands.length; i++) {
-                    let command = commands[i];
-                    if (command.submenu) {
-                        submenu_commands = command.submenu;
+                if (d > rs + options.spotlightPadding && (d < options.menuRadius)) {
+                    queueDrawBg();
+                    if (!commands[activeCommandI].submenu) {
+                        queueDrawCommands(rx, ry, theta);
                     } else {
-                        submenu_commands = [];
-                    }
-
-                    let inThisCommand = theta1 <= theta && theta <= theta2
-                        || theta1 <= theta + 2 * Math.PI && theta + 2 * Math.PI <= theta2;
-
-                    if (command.enabled === false) {
-                        inThisCommand = false;
-                    }
-
-                    if (inThisCommand) {
-                        activeCommandI = i;
-                        break;
-                    }
-                    theta1 += dtheta;
-                    theta2 += dtheta;
-                }
-                hideSubmenuContent();
-
-                if (commands[activeCommandI] !== undefined) {
-
-                    // Do not draw indicator while mouse in inner circle or out of circle # But if a command has submenu, draw indicator util mouse out of submenu (2*r)
-                    if (d < rs + options.spotlightPadding || ((d > options.menuRadius) && !commands[activeCommandI].submenu)) {
-                        queueDrawBg();
-                        cancelActiveCommand();
-                        return;
-                    }
-
-                    if (d > rs + options.spotlightPadding && (d < options.menuRadius)) {
-                        queueDrawBg();
-                        if (!commands[activeCommandI].submenu) {
-                            queueDrawCommands(rx, ry, theta);
-                        } else {
-                            showSubmenuContent(activeCommandI);
-                            queueDrawSubmenuBg(rx, ry, theta);
-                        }
-                        return;
-                    }
-
-                    if (d >= options.menuRadius + 160) {
-                        commands[activeCommandI].hovered = false;
-                    }
-
-                    if ((d < options.menuRadius + 160 && d > options.menuRadius) && commands[activeCommandI].submenu && commands[activeCommandI].hovered) {
                         showSubmenuContent(activeCommandI);
-                        submenu_commands = commands[activeCommandI].submenu;
-                        queueDrawBg();
-                        // Judge which submenu used
-                        let ddtheta = dtheta / submenu_commands.length;
-                        let theta1 = startPoint;
-                        let theta2 = theta1 + ddtheta;
-                        theta1 += dtheta * activeCommandI;
-                        theta2 += dtheta * activeCommandI;
-                        for (let i = 0; i < submenu_commands.length; i++) {
-                            let submenu_command = commands[activeCommandI].submenu[i];
-                            let inThisSubMenuCommand = theta1 <= theta && theta <= theta2
-                                || theta1 <= theta + 2 * Math.PI && theta + 2 * Math.PI <= theta2;
-                            if (submenu_command.enabled === false) {
-                                inThisSubMenuCommand = false;
-                                activeSubCommandI = undefined;
-                            }
-                            if (inThisSubMenuCommand) {
-                                activeSubCommandI = i;
-                                break;
-                            }
-                            theta1 += ddtheta;
-                            theta2 += ddtheta;
-                        }
-
                         queueDrawSubmenuBg(rx, ry, theta);
-                        queueDrawSubmenuCommands();
-                        return;
                     }
+                    return;
                 }
 
-                cancelActiveCommand();
-                queueDrawBg();
-            })
-
-            .on('tapend', function () {
-                parent.style.display = 'none';
-                if (activeCommandI !== undefined) {
-                    let select = commands[activeCommandI].select;
-                    if (select) {
-                        select.apply(target, [target, gestureStartEvent]);
-                        activeCommandI = undefined;
-                    } else if (commands[activeCommandI].submenu && activeSubCommandI !== undefined) {
-                        // Execute submenu select function
-                        commands[activeCommandI].submenu[activeSubCommandI].select.apply(target, [target, gestureStartEvent]);
-                        activeCommandI = undefined;
-                        activeSubCommandI = undefined;
-                    }
+                if (d >= options.menuRadius + 160) {
+                    commands[activeCommandI].hovered = false;
                 }
-                inGesture = false;
-                restoreGestures();
-            });
+
+                if ((d < options.menuRadius + 160 && d > options.menuRadius) && commands[activeCommandI].submenu && commands[activeCommandI].hovered) {
+                    showSubmenuContent(activeCommandI);
+                    submenu_commands = commands[activeCommandI].submenu;
+                    queueDrawBg();
+                    // Judge which submenu used
+                    let ddtheta = dtheta / submenu_commands.length;
+                    let theta1 = startPoint;
+                    let theta2 = theta1 + ddtheta;
+                    theta1 += dtheta * activeCommandI;
+                    theta2 += dtheta * activeCommandI;
+                    for (let i = 0; i < submenu_commands.length; i++) {
+                        let submenu_command = commands[activeCommandI].submenu[i];
+                        let inThisSubMenuCommand = theta1 <= theta && theta <= theta2
+                            || theta1 <= theta + 2 * Math.PI && theta + 2 * Math.PI <= theta2;
+                        if (submenu_command.enabled === false) {
+                            inThisSubMenuCommand = false;
+                            activeSubCommandI = undefined;
+                        }
+                        if (inThisSubMenuCommand) {
+                            activeSubCommandI = i;
+                            break;
+                        }
+                        theta1 += ddtheta;
+                        theta2 += ddtheta;
+                    }
+
+                    queueDrawSubmenuBg(rx, ry, theta);
+                    queueDrawSubmenuCommands();
+                    return;
+                }
+            }
+
+            cancelActiveCommand();
+            queueDrawBg();
+        })
+
+        .on('tapend', function () {
+            parent.style.display = 'none';
+            if (activeCommandI !== undefined) {
+                let select = commands[activeCommandI].select;
+                if (select) {
+                    select.apply(target, [target, gestureStartEvent]);
+                    activeCommandI = undefined;
+                } else if (commands[activeCommandI].submenu && activeSubCommandI !== undefined) {
+                    // Execute submenu select function
+                    const hoveredSubmenu = commands[activeCommandI].submenu[activeSubCommandI].select;
+                    if (hoveredSubmenu) {
+                        hoveredSubmenu.apply(target, [target, gestureStartEvent]);
+                    }
+                    activeCommandI = undefined;
+                    activeSubCommandI = undefined;
+                }
+            }
+            if (inGesture) {
+                options.onClose();
+            }
+            inGesture = false;
+            restoreGestures();
+        });
+
+    if (options.autoOpen) {
+        bindings.on(options.openMenuEvents, options.selector, openCxtmenu);
     }
 
     function cancelActiveCommand() {
@@ -927,10 +936,10 @@ let cxtmenu = function (params) {
         wrapper.remove();
     }
 
-    addEventListeners();
-
     return {
         destroy: () => destroyInstance(),
+        isOpen: () => inGesture,
+        open: openCxtmenu,
     };
 
 };
