@@ -764,7 +764,7 @@
 
                     window.addEventListener('resize', updatePixelRatio);
 
-                    function openCxtmenu(e) {
+                    function openCxtMenu(e) {
                         target = e.target; // Remember which node the context menu is for
                         var ele = e.target;
                         var isCy = e.target === cy;
@@ -846,8 +846,67 @@
                         }
                     }
 
+                    function isClickInContextMenu(clickEvent) {
+                        if (!inGesture || !commands || commands.length === 0) {
+                            return false; // Menu isn't open
+                        }
+
+                        if (activeCommandI || activeSubCommandI) {
+                            return true;
+                        }
+
+                        // Get click position relative to canvas
+                        var canvasRect = canvas.getBoundingClientRect();
+                        var clickX = clickEvent.clientX - canvasRect.left;
+                        var clickY = clickEvent.clientY - canvasRect.top;
+
+                        // Calculate distance from center of circular menu
+                        var centerX = 2 * r + options.activePadding;
+                        var centerY = 2 * r + options.activePadding;
+                        var distance = Math.sqrt(Math.pow(clickX - centerX, 2) + Math.pow(clickY - centerY, 2));
+
+                        // Check if click is within outer radius (menu items) or inner radius (spotlight)
+                        var outerRadius = r + options.activePadding;
+                        var innerRadius = rs + options.spotlightPadding;
+
+                        return distance <= outerRadius || distance <= innerRadius;
+                    }
+
+                    function closeMenu() {
+                        if (!inGesture) return;
+
+                        parent.style.display = 'none';
+                        inGesture = false;
+
+                        // Restore original settings
+                        if (zoomEnabled !== undefined) {
+                            cy.userZoomingEnabled(zoomEnabled);
+                        }
+                        if (panEnabled !== undefined) {
+                            cy.userPanningEnabled(panEnabled);
+                        }
+                        if (boxEnabled !== undefined) {
+                            cy.boxSelectionEnabled(boxEnabled);
+                        }
+                        if (grabbable && target) {
+                            target.grabify();
+                        }
+
+                        options.onClose();
+                        restoreGestures();
+                    }
+
+                    function closeCxtMenu(e) {
+                        if (isClickInContextMenu(e.originalEvent)) {
+                            return;
+                        }
+                        closeMenu();
+                    }
+
                     bindings.on('resize', function () {
                         updatePixelRatio();
+                    }).on('cxttap', function (e) {
+                        return closeCxtMenu(e);
                     }).on('tapdrag', function (e) {
                         if (!inGesture) {
                             return;
@@ -987,7 +1046,7 @@
                     });
 
                     if (options.autoOpen) {
-                        bindings.on(options.openMenuEvents, options.selector, openCxtmenu);
+                        bindings.on(options.openMenuEvents, options.selector, openCxtMenu);
                     }
 
                     function cancelActiveCommand() {
@@ -1101,7 +1160,9 @@
                         isOpen: function isOpen() {
                             return inGesture;
                         },
-                        open: openCxtmenu
+                        open: openCxtMenu,
+                        close: closeMenu,
+                        clickedOnCxtContextMenu: isClickInContextMenu
                     };
                 };
 
