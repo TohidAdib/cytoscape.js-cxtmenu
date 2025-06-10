@@ -181,6 +181,14 @@
             });
 
 			cy.on('cxttapstart', 'node', e => {
+				if (cxt.isOpen() && e.target.isNode()){
+					cxt.open(e);
+					cy.userPanningEnabled(false);
+					cy.boxSelectionEnabled(false);
+					cy.autoungrabify(true);
+					cy.autounselectify(true);
+					return;
+				}
 				if (!cxt.isOpen()) {
 					cxt.open(e);
 					cy.userPanningEnabled(false);
@@ -189,39 +197,6 @@
 					cy.autounselectify(true);
 				}
 			});
-
-            cy.cxtmenu({
-                selector: 'core',
-				autoOpen: false,
-                commands: () => cy.$(':selected').length === 0 ? [
-                    {
-                        content: 'bg1',
-                        select: function () {
-                            console.log('bg1');
-                        }
-                    },
-                    { // example command
-                        fillColor: 'rgba(200, 200, 200, 0.75)', // optional: custom background color for item
-                        content: svg, // html/text content to be displayed in the menu
-                        select: function(ele){ // a function to execute when the command is selected
-                            console.log( 'triger' ) // `ele` holds the reference to the active element
-                        },
-                        enabled: true // whether the command is selectable
-                    },
-
-                    {
-                        content: 'bg2',
-                        select: function () {
-                            console.log('bg2');
-                        }
-                    }
-                ] : [{
-                    content: 'bg1',
-                    select: function () {
-                        console.log('bg1');
-                    }
-                }]
-            });
 
         });
     </script>

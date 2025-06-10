@@ -665,7 +665,7 @@ let cxtmenu = function (params) {
 
     window.addEventListener('resize', updatePixelRatio);
 
-    function openCxtmenu(e) {
+    function openCxtMenu(e) {
         target = e.target; // Remember which node the context menu is for
         let ele = e.target;
         let isCy = e.target === cy;
@@ -745,10 +745,72 @@ let cxtmenu = function (params) {
         }
     }
 
+    function isClickInContextMenu(clickEvent) {
+        if (!inGesture || !commands || commands.length === 0) {
+            return false; // Menu isn't open
+        }
+
+        if (activeCommandI || activeSubCommandI) {
+            return true;
+        }
+
+        // Get click position relative to canvas
+        const canvasRect = canvas.getBoundingClientRect();
+        const clickX = clickEvent.clientX - canvasRect.left;
+        const clickY = clickEvent.clientY - canvasRect.top;
+
+        // Calculate distance from center of circular menu
+        const centerX = 2 * r + options.activePadding;
+        const centerY = 2 * r + options.activePadding;
+        const distance = Math.sqrt(
+            Math.pow(clickX - centerX, 2) +
+            Math.pow(clickY - centerY, 2)
+        );
+
+        // Check if click is within outer radius (menu items) or inner radius (spotlight)
+        const outerRadius = r + options.activePadding;
+        const innerRadius = rs + options.spotlightPadding;
+
+        return distance <= outerRadius || distance <= innerRadius;
+    }
+
+    function closeMenu() {
+        if (!inGesture) return;
+
+        parent.style.display = 'none';
+        inGesture = false;
+
+        // Restore original settings
+        if (zoomEnabled !== undefined) {
+            cy.userZoomingEnabled(zoomEnabled);
+        }
+        if (panEnabled !== undefined) {
+            cy.userPanningEnabled(panEnabled);
+        }
+        if (boxEnabled !== undefined) {
+            cy.boxSelectionEnabled(boxEnabled);
+        }
+        if (grabbable && target) {
+            target.grabify();
+        }
+
+        options.onClose();
+        restoreGestures();
+    }
+
+    function closeCxtMenu(e) {
+        if (isClickInContextMenu(e.originalEvent)) {
+            return;
+        }
+        closeMenu();
+    }
+
     bindings
         .on('resize', () => {
             updatePixelRatio();
         })
+
+        .on('cxttap',e => closeCxtMenu(e))
 
         .on('tapdrag', e => {
             if (!inGesture) {
@@ -893,7 +955,7 @@ let cxtmenu = function (params) {
         });
 
     if (options.autoOpen) {
-        bindings.on(options.openMenuEvents, options.selector, openCxtmenu);
+        bindings.on(options.openMenuEvents, options.selector, openCxtMenu);
     }
 
     function cancelActiveCommand() {
@@ -939,7 +1001,9 @@ let cxtmenu = function (params) {
     return {
         destroy: () => destroyInstance(),
         isOpen: () => inGesture,
-        open: openCxtmenu,
+        open: openCxtMenu,
+        close: closeMenu,
+        clickedOnCxtContextMenu: isClickInContextMenu
     };
 
 };
