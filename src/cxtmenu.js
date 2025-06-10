@@ -750,7 +750,7 @@ let cxtmenu = function (params) {
             return false; // Menu isn't open
         }
 
-        if (activeCommandI || activeSubCommandI) {
+        if (activeCommandI === undefined || activeSubCommandI === undefined) {
             return true;
         }
 
