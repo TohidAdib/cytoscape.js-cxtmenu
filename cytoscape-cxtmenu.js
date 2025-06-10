@@ -851,7 +851,7 @@
                             return false; // Menu isn't open
                         }
 
-                        if (activeCommandI === undefined || activeSubCommandI === undefined) {
+                        if (activeSubCommandI !== undefined || activeCommandI !== undefined) {
                             return true;
                         }
 
