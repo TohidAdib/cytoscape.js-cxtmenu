@@ -1003,7 +1003,7 @@ let cxtmenu = function (params) {
         isOpen: () => inGesture,
         open: openCxtMenu,
         close: closeMenu,
-        clickedOnCyContextMenu: isClickInContextMenu
+        clickedOnCxtMenu: isClickInContextMenu
     };
 
 };
