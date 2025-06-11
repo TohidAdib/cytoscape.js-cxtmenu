@@ -181,7 +181,7 @@
             });
 
 			cy.on('cxttapstart', 'node', e => {
-				if (cxt.isOpen() && e.target.isNode() && !cxt.clickedOnCxtContextMenu(e)){
+				if (cxt.isOpen() && e.target.isNode() && !cxt.clickedOnCyContextMenu(e)){
 					cxt.open(e);
 					cy.userPanningEnabled(false);
 					cy.boxSelectionEnabled(false);

@@ -1162,7 +1162,7 @@
                         },
                         open: openCxtMenu,
                         close: closeMenu,
-                        clickedOnCxtContextMenu: isClickInContextMenu
+                        clickedOnCyContextMenu: isClickInContextMenu
                     };
                 };
 
